@@ -3,6 +3,12 @@
 # Learn more about .gitignore:
 #     https://www.atlassian.com/git/tutorials/saving-changes/gitignore
 
+# folders
+imgs/
+model/
+pruned_*/
+TLT_Converter/
+
 # Node artifact files
 node_modules/
 dist/
