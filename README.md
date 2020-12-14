@@ -22,6 +22,7 @@ To test raspberry pi v2 camera only, run cam_test.py in /tests folder
 This repository makes use of NVIDIA Deepstream SDK for inferring a trained Detectnet-v2 network and gstreamer to capture images from a raspberry pi v2 camera.
 
 The Gst pipeline is built with the following components:
+
 *  nvaruguscamerasrc: 
     *  The source for the raspberry pi v2 camera.
 *  capsfilter: 
