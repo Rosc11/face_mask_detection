@@ -35,17 +35,10 @@ import cv2
 import numpy as np
 from nms import nms
 
-PGIE_CLASS_ID_MASK = 0
-PGIE_CLASS_ID_NO_MASK = 1
-
+SHOW_STREAM = True
 
 def osd_sink_pad_buffer_probe(pad,info,u_data):
     frame_number=0
-    #Intiallizing object counter with 0.
-    obj_counter = {
-        PGIE_CLASS_ID_MASK:0,
-        PGIE_CLASS_ID_NO_MASK:0,
-    }
     num_rects=0
 
     gst_buffer = info.get_buffer()
@@ -82,7 +75,6 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
                 obj_meta=pyds.NvDsObjectMeta.cast(l_obj.data)
             except StopIteration:
                 break
-            obj_counter[obj_meta.class_id] += 1
             obj_meta.rect_params.border_color.set(0.0, 0.0, 1.0, 0.0)
 
             #add detected rect
@@ -106,71 +98,47 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
         rects = [rect[1:5] for rect in det_rects]
         indices = nms.boxes(rects, scores)
         detected_rects = det_rects[indices]
-        print(str(len(detected_rects))+" object(s) detected!")
-
-        # Acquiring a display meta object. The memory ownership remains in
-        # the C code so downstream plugins can still access it. Otherwise
-        # the garbage collector will claim it when this probe function exits.
-        display_meta=pyds.nvds_acquire_display_meta_from_pool(batch_meta)
-        display_meta.num_labels = 1
-        py_nvosd_text_params = display_meta.text_params[0]
-        # Setting display text to be shown on screen
-        # Note that the pyds module allocates a buffer for the string, and the
-        # memory will not be claimed by the garbage collector.
-        # Reading the display_text field here will return the C address of the
-        # allocated string. Use pyds.get_string() to get the string content.
-        py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} MASK_COUNT={} NO_MASK_COUNT={}".format(frame_number, num_rects, obj_counter[PGIE_CLASS_ID_MASK], obj_counter[PGIE_CLASS_ID_NO_MASK])
-
-        # Now set the offsets where the string should appear
-        py_nvosd_text_params.x_offset = 10
-        py_nvosd_text_params.y_offset = 12
-
-        # Font , font-color and font-size
-        py_nvosd_text_params.font_params.font_name = "Serif"
-        py_nvosd_text_params.font_params.font_size = 10
-        # set(red, green, blue, alpha); set to White
-        py_nvosd_text_params.font_params.font_color.set(1.0, 1.0, 1.0, 1.0)
-
-        # Text background color
-        py_nvosd_text_params.set_bg_clr = 1
-        # set(red, green, blue, alpha); set to Black
-        py_nvosd_text_params.text_bg_clr.set(0.0, 0.0, 0.0, 1.0)
-        # Using pyds.get_string() to get display_text as string
-        pyds.nvds_add_display_meta_to_frame(frame_meta, display_meta)
+        print("Frame " + str(frame_number)  + ", " + str(len(detected_rects))+" object(s) detected!")
 
         #retrieve & save image
         if (len(detected_rects) > 0):
-           # the input should be address of buffer and batch_id
-           n_frame=pyds.get_nvds_buf_surface(hash(gst_buffer),frame_meta.batch_id)
-           #convert python array into numy array format.
-           frame_image=np.array(n_frame,copy=True,order='C')
-           #covert the array into cv2 default color format
-           frame_image=cv2.cvtColor(frame_image,cv2.COLOR_RGBA2BGRA)
-           for i in range(0, len(detected_rects)):
-              c = detected_rects[i][0]
-              rect = detected_rects[i][1:5].astype(np.int64)
-              x = rect[0]
-              y = rect[1]
-              w = rect[2]
-              h = rect[3]
-              frame_crop=frame_image[y:y+h, x:x+w]
-              #save image
-              label = "mask" if c==0 else "no-mask"
-              #cv2.imwrite("imgs/frame_"+str(frame_number)+"_crop_"+str(i)+"_"+label+".jpg",frame_crop)
+            # the input should be address of buffer and batch_id
+            n_frame=pyds.get_nvds_buf_surface(hash(gst_buffer),frame_meta.batch_id)
+            #convert python array into numy array format.
+            frame_image=np.array(n_frame,copy=True,order='C')
+            #covert the array into cv2 default color format
+            frame_image=cv2.cvtColor(frame_image,cv2.COLOR_RGBA2BGRA)
+            for i in range(0, len(detected_rects)):
+                c = detected_rects[i][0]
+                rect = detected_rects[i][1:5].astype(np.int64)
+                x = rect[0]
+                y = rect[1]
+                w = rect[2]
+                h = rect[3]
+                frame_crop=frame_image[y:y+h, x:x+w]
+                
+                #save image
+                label = "mask" if c==0 else "no-mask"
+                #cv2.imwrite("imgs/frame_"+str(frame_number)+"_crop_"+str(i)+"_"+label+".jpg",frame_crop)
         try:
             l_frame=l_frame.next
         except StopIteration:
             print("ERROR at collecting frame")
             break
-			
-    return Gst.PadProbeReturn.OK	
+    return Gst.PadProbeReturn.OK
 
 
 def main(args):
     # Check input arguments
-    if len(args) != 1:
-        sys.stderr.write("usage: %s \n" % args[0])
+    if len(args) == 1:
+        SHOW_STREAM = True
+    if len(args) == 2:
+        if args[1] == "no-stream":
+            SHOW_STREAM = False
+    elif len(args) > 2:
+        sys.stderr.write("usage: " + args[0] + " \n no-stream [optional]")
         sys.exit(1)
+
 
     # Standard GStreamer initialization
     GObject.threads_init()
@@ -244,17 +212,20 @@ def main(args):
     # Create OSD to draw on the converted RGBA buffer
     # This is where the probe is placed to draw on images
     nvosd = Gst.ElementFactory.make("nvdsosd", "onscreendisplay")
-
     if not nvosd:
         sys.stderr.write(" Unable to create nvosd \n")
-
     # Finally render the osd output
     if is_aarch64():
         transform = Gst.ElementFactory.make("nvegltransform", "nvegl-transform")
-    print("Creating EGLSink \n")
-    sink = Gst.ElementFactory.make("nveglglessink", "nvvideo-renderer")
-    if not sink:
-        sys.stderr.write(" Unable to create egl sink \n")
+
+    if (SHOW_STREAM):
+
+        print("Creating EGLSink \n")
+        sink = Gst.ElementFactory.make("nveglglessink", "nvvideo-renderer")
+        if not sink:
+            sys.stderr.write(" Unable to create egl sink \n")
+    else:
+        sink = Gst.ElementFactory.make("fakesink", "fakesink")
 
     #caps_v4l2src.set_property('caps', Gst.Caps.from_string("video/x-raw, framerate=21/1, format=NV12"))
     caps_input.set_property('caps', Gst.Caps.from_string("video/x-raw(memory:NVMM), width=1920, height=1080, framerate=30/1, format=NV12"))
@@ -265,8 +236,9 @@ def main(args):
     streammux.set_property('batch-size', 1)
     streammux.set_property('batched-push-timeout', 4000000)
     pgie.set_property('config-file-path', "mask_detector_config.txt")
-    # Set sync = false to avoid late frame drops at the display-sink
-    sink.set_property('sync', False)
+    if (SHOW_STREAM):
+       # Set sync = false to avoid late frame drops at the display-sink
+       sink.set_property('sync', False)
 
     print("Adding elements to Pipeline \n")
     pipeline.add(source)
@@ -286,7 +258,7 @@ def main(args):
     # source -> converters -> mux ->
     # nvinfer -> nvvideoconvert -> nvosd -> video-renderer
     print("Linking elements in the Pipeline \n")
-    
+
     source.link(caps_input)
     caps_input.link(vidconvsrc)
     vidconvsrc.link(nvvidconvsrc)
@@ -301,7 +273,7 @@ def main(args):
     streammux.link(pgie)
     pgie.link(nvvidconv)
     nvvidconv.link(nvosd)
-    if is_aarch64():
+    if is_aarch64() and SHOW_STREAM:
         nvosd.link(transform)
         transform.link(sink)
     else:
@@ -327,6 +299,7 @@ def main(args):
     pipeline.set_state(Gst.State.PLAYING)
     try:
         loop.run()
+        print("loop started!")
     except :
         pass
     # cleanup
