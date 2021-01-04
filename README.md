@@ -56,8 +56,9 @@ GST_ARGUS: 1280 x 720 FR = 120.000005 fps Duration = 8333333 ; Analog Gain range
 *  nveglglessink / fakesink
     *  nveglglessink = the output window
     *  fakesink = a pipeline always needs to end with a sink -> a fake sink enables to only process the images without displaying them
-    
-To gather detection information, a probe is placed on nvosd. This probe does not interfere with the information processed in the pipeline. It only gains access to frame meta information such as bounding boxes & the frame itself. This means applying nms does not filter the bounding boxes in the pipeline, which is why all predicted bounding boxes are still shown in nveglessink.
+
+## Using detections
+To gather detection information, a probe is placed on nvosd. This probe does not interfere with the information processed in the pipeline. It only gains access to frame meta information such as bounding boxes & the frame itself. This means applying nms does not filter the bounding boxes in the pipeline, which is why all predicted bounding boxes are still shown in nveglessink. Nevertheless, bounding boxes and frame objects are loaded in parameters for custom processing.
 
 ## Models
 Models were created using https://github.com/NVIDIA-AI-IOT/face-mask-detection. When creating TensorRT engine files for Jetson Nano, make sure you're using the right version of tlt-converter for your platform (depends on your TensorRT version). This repository made use of TensorRT 7.1 (downloads at https://developer.nvidia.com/tlt-getting-started).
