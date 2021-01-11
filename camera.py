@@ -7,12 +7,17 @@ from common.is_aarch_64 import is_aarch64
 from common.bus_call import bus_call
 
 from utils import save_face_crops, get_cv2_image, apply_nms
+from api import send
 import pyds
+import time
 
 class Camera:
     def __init__(self):
         self.pipeline = None
         self.loop = None
+        self.notsend = False
+        self.last_time_sent = 0
+        self.send_interval = 500 #in milliseconds
 
     def osd_sink_pad_buffer_probe(self, pad,info,u_data):
         print("Entered buffer probe.")
@@ -45,7 +50,7 @@ class Camera:
             num_rects = frame_meta.num_obj_meta
             l_obj=frame_meta.obj_meta_list
             detected_rects = []
-            scores = []
+            #scores = []
             i=0
             while l_obj is not None:
                 try:
@@ -63,8 +68,8 @@ class Camera:
                 y = obj_meta.rect_params.top
                 w = obj_meta.rect_params.width
                 h = obj_meta.rect_params.height
-                detected_rects.append([c,x,y,w,h])
-                scores.append(score)
+                detected_rects.append([c,score,x,y,w,h])
+                #scores.append(score)
                 i = i + 1
                 try:
                     l_obj=l_obj.next
@@ -72,12 +77,18 @@ class Camera:
                     break
 
             #apply nms
-            detected_rects = apply_nms(detected_rects, scores)
+            detected_rects = apply_nms(detected_rects)
             print("Frame " + str(frame_number)  + ", " + str(len(detected_rects))+" object(s) detected!")
 
             #retrieve & save image
             if (len(detected_rects) > 0):
-                frame_image = get_cv2_image(gst_buffer, frame_meta)
+                now = time.time() * 1000
+                diff = now - self.last_time_sent
+                if diff > self.send_interval:
+                    self.last_time_sent = now
+                    frame_image = get_cv2_image(gst_buffer, frame_meta)
+                    send(now, frame_image, detected_rects)
+                #print("score = " + str(detected_rects[0][1]))
                 #save_face_crops(detected_rects, frame_image)
             try:
                 l_frame=l_frame.next

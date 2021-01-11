@@ -38,4 +38,14 @@ def apply_nms(detections, scores):
     rects = [rect[1:5] for rect in det_rects]
     indices = nms.boxes(rects, scores)
     detected_rects = det_rects[indices]
+    scores = scores[indices]
+    return detected_rects
+
+### expects detections in [class_id, score, x, y, w, h] format
+def apply_nms(detections):
+    det_rects = np.array(detections)
+    rects = [rect[2:6] for rect in det_rects]
+    scores = [rect[1] for rect in det_rects]
+    indices = nms.boxes(rects, scores)
+    detected_rects = det_rects[indices]
     return detected_rects
