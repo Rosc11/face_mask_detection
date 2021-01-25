@@ -82,7 +82,7 @@ class Camera:
 
             #retrieve & save image
             if (len(detected_rects) > 0):
-                now = time.time() * 1000
+                now = round(time.time() * 1000)
                 diff = now - self.last_time_sent
                 if diff > self.send_interval:
                     self.last_time_sent = now

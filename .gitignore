@@ -5,6 +5,7 @@
 
 # folders
 imgs/
+files/
 model/
 pruned_*/
 TLT_Converter/

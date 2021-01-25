@@ -10,7 +10,7 @@ ENDPOINT = 'api/current_frame'
 
 def send(timestamp, image, detections):
     #timestamp
-    timestamp = int(time.time())
+#    timestamp = int(time.time())
     
     #base64 image string from image
     retval, buffer = cv2.imencode('.jpg', image)
