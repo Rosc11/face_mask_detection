@@ -21,10 +21,10 @@ def send(timestamp, image, detections):
     for i in range(len(detections)):
         c = detections[i][0]
         score = detections[i][1]
-        x = detections[i][2]
-        y = detections[i][3]
-        w = detections[i][4]
-        h = detections[i][5]
+        x = int(detections[i][2])
+        y = int(detections[i][3])
+        w = int(detections[i][4])
+        h = int(detections[i][5])
         mask_detected = False
         if c == 0:
             mask_detected = True
