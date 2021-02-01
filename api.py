@@ -9,13 +9,10 @@ import cv2
 ENDPOINT = 'api/current_frame'
 
 def send(timestamp, image, detections):
-    #timestamp
-#    timestamp = int(time.time())
-    
     #base64 image string from image
     retval, buffer = cv2.imencode('.jpg', image)
     jpg_as_text = base64.b64encode(buffer)
-    
+
     faces = []
     #create json from detections
     for i in range(len(detections)):
@@ -47,9 +44,9 @@ def send(timestamp, image, detections):
         "faces": faces
     }
     #app_json = json.dumps(jsonobject)
-    filename = str(timestamp) + '.txt'
-    with open(filename, 'w') as jsonfile:
-        json.dump(jsonobject, jsonfile)
+#    filename = str(timestamp) + '.txt'
+#    with open(filename, 'w') as jsonfile:
+#        json.dump(jsonobject, jsonfile)
     
     #post request
-    #x = requests.post(ENDPOINT, data = jsonobject)
+    x = requests.post(ENDPOINT, json=jsonobject)
