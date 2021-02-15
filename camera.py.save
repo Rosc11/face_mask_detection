@@ -1,3 +1,4 @@
+
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import GObject, Gst
@@ -7,10 +8,8 @@ from common.bus_call import bus_call
 
 from utils import save_face_crops, get_cv2_image, apply_nms, resize_image_post_request
 from api import send
-from api_async import send_async
 import pyds
 import time
-import asyncio
 
 class Camera:
     def __init__(self):
@@ -83,7 +82,7 @@ class Camera:
 
             #apply nms
             detected_rects = apply_nms(detected_rects)
-#            print("Frame " + str(frame_number)  + ", " + str(len(detected_rects))+" object(s) detected!")
+            print("Frame " + str(frame_number)  + ", " + str(len(detected_rects))+" object(s) detected!")
 
             #retrieve & save image
             if (len(detected_rects) > 0):
@@ -93,11 +92,8 @@ class Camera:
                     self.last_time_sent = now
                     frame_image = get_cv2_image(gst_buffer, frame_meta)
 #                    frame_image = resize_image_post_request(frame_image, 640, 480)
-                    #send(now, frame_image, detected_rects)
-#                    print("now sending frame " + str(frame_number) + " with timestamp " + str(now))
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(send_async(now, frame_image, detected_rects))
+                    
+send(now, frame_image, detected_rects)
                 #print("score = " + str(detected_rects[0][1]))
                 #save_face_crops(detected_rects, frame_image)
             try:
@@ -201,7 +197,7 @@ class Camera:
         streammux.set_property('height', 544)
         streammux.set_property('batch-size', 1)
         streammux.set_property('batched-push-timeout', 4000000)
-        pgie.set_property('config-file-path', "/home/ghip-nano/masks/face_mask_detection/mask_detector_config.txt")
+        pgie.set_property('config-file-path', "mask_detector_config.txt")
         if (show_stream):
             # Set sync = false to avoid late frame drops at the display-sink
             sink.set_property('sync', False)

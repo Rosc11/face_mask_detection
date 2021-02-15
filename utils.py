@@ -28,8 +28,11 @@ def get_cv2_image(gst_buffer, frame_meta):
     frame_image=np.array(n_frame,copy=True,order='C')
     #covert the array into cv2 default color format
     frame_image=cv2.cvtColor(frame_image,cv2.COLOR_RGBA2BGRA)
-    
     return frame_image
+
+def resize_image_post_request(image, width, height):
+    image = cv2.resize(image, (width, height))
+    return image
 
 ### expects detections in [class_id, x, y, w, h] format. len(scores) should match len(detections)
 def apply_nms(detections, scores):
