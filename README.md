@@ -1,7 +1,9 @@
 # Face mask detection on a NVIDIA Jetson nano using DeepStream SDK
 
 Prequisites:
+
 * DeepStreamSDK 5.0
+* Jetpack 4.4.1 (L4T 32.4.4)
 * Python 3.6
 * Gst-python
 * nms
