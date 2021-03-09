@@ -5,6 +5,9 @@ Prequisites:
 * DeepStreamSDK 5.0
 * Jetpack 4.4.1 (L4T 32.4.4)
 * Python 3.6
+* libjpeg-dev (apt-get install)
+
+Deepstream install: https://docs.nvidia.com/metropolis/deepstream/dev-guide/text/DS_Quickstart.html#jetson-setup
 
 pip packages:
 
