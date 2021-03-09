@@ -9,7 +9,7 @@ files/
 model/
 pruned_*/
 TLT_Converter/
-
+TLT_Converter_nano/
 # Node artifact files
 node_modules/
 dist/
@@ -25,6 +25,7 @@ dist/
 
 # Package files
 *.jar
+*.zip
 
 # Maven
 target/

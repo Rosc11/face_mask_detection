@@ -5,16 +5,23 @@ Prequisites:
 * DeepStreamSDK 5.0
 * Jetpack 4.4.1 (L4T 32.4.4)
 * Python 3.6
-* Gst-python
-* nms
+
+pip packages:
+
+* cython
 * numpy
+* nms
 * cv2
+* Pillow
+* aiohttp
 
 To run the app:
 ```
     python3 mask_detector_cam.py \
        no-stream [optional]                 (disables screen display of the stream) 
 ```
+Make sure all the paths are configured as they should be (if it doesn't run, check camera.py, the config file and start.sh)
+
 Or you can run the script with
 
 ```
@@ -77,15 +84,16 @@ You can work further with detections & scores in osd_sink_pad_buffer_probe in ca
 
 ## Run script in LXDE-GUI mode
 For maximum performance while viewing the camera output, we recommend to start the jetson nano GUI in LXDE mode (https://www.jetsonhacks.com/2020/11/07/save-1gb-of-memory-use-lxde-on-your-jetson/)
+When using a jetpack version > 4.4, LXDE should be already installed in the jetson nano. You can enable it in gdm3 mode at login. When selected, switch to lightdm mode.
 
-To install LXDE:
+If LXDE is not installed: install LXDE with:
 ```
 git clone https://github.com/jetsonhacks/installLXDE.git
 cd installLXDE
 ./installLXDE.sh
 ```
 
-Then, make sure to boot into lightdm mode:
+Then, make sure to boot into lightdm mode by selecting lightdm after the following command:
 ```
 sudo dpkg-reconfigure lightdm
 ```

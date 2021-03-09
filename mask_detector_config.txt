@@ -10,10 +10,10 @@
 gpu-id=0
 net-scale-factor=0.0039215697906911373
 tlt-model-key=tlt_encode
-tlt-encoded-model=/home/ghip-nano/masks/face_mask_detection/pruned_60/resnet18_detector.etlt
-labelfile-path=/home/ghip-nano/masks/face_mask_detection/labels_masknet.txt
+tlt-encoded-model=/home/ghip-nano/face_mask_detection/pruned_60/resnet18_detector.etlt
+labelfile-path=/home/ghip-nano/face_mask_detection/labels_masknet.txt
 # GPU Engine File
-model-engine-file=/home/ghip-nano/masks/face_mask_detection/pruned_60/resnet18_detector.trt
+model-engine-file=/home/ghip-nano/face_mask_detection/pruned_60/resnet18_detector.trt
 input-dims=3;544;960;0
 uff-input-blob-name=input_1
 batch-size=1
