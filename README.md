@@ -25,7 +25,7 @@ To run the app:
 ```
 Make sure all the paths are configured as they should be (if it doesn't run, check camera.py, the config file and start.sh)
 
-Or you can run the script with
+Or you can run the script with:
 
 ```
 ./start.sh
