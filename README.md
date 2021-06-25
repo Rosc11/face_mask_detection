@@ -23,7 +23,7 @@ To run the app:
     python3 mask_detector_cam.py \
        no-stream [optional]                 (disables screen display of the stream) 
 ```
-Make sure all the paths are configured as they should be (if it doesn't run, check camera.py, the config file and start.sh)
+Make sure all the paths are configured as they should be (if it doesn't run, check camera.py on line 204 - pgie.set_property, the config file and start.sh)
 
 Or you can run the script with:
 
