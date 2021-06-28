@@ -6,8 +6,9 @@ from PIL import Image
 import asyncio
 import aiohttp
 import cv2
+import parameters
 
-ENDPOINT = 'http://localhost:8095/api/current_frame'
+ENDPOINT = parameters.ENDPOINT
 
 async def send_async(timestamp, image, detections):
     async with aiohttp.ClientSession() as session:

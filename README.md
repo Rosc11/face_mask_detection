@@ -23,7 +23,7 @@ To run the app:
     python3 mask_detector_cam.py \
        no-stream [optional]                 (disables screen display of the stream) 
 ```
-Make sure all the paths are configured as they should be (if it doesn't run, check camera.py on line 204 - pgie.set_property, the config file and start.sh)
+Make sure all the paths are configured as they should be (if it doesn't run, check parameters.py, the config file and start.sh)
 
 Or you can run the script with:
 
@@ -104,7 +104,7 @@ Reboot your Jetson Nano for the changes to take effect
 
 ### Run script at boot using a systemd service
 
-** IMPORTANT: When trying to execute script at boot, make sure ALL the paths in the script and config file are absolute paths!**
+** IMPORTANT: When trying to execute script at boot, make sure all paths in parameters.py and config file are absolute paths!**
 
 Create a new systemd service by doing:
 

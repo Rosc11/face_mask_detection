@@ -11,6 +11,7 @@ from api_async import send_async
 import pyds
 import time
 import asyncio
+import parameters
 
 class Camera:
     def __init__(self):
@@ -18,7 +19,7 @@ class Camera:
         self.loop = None
         self.notsend = False
         self.last_time_sent = 0
-        self.send_interval = 500 #in milliseconds
+        self.send_interval = parameters.SEND_INTERVAL
         self.started = False
 
     def osd_sink_pad_buffer_probe(self, pad,info,u_data):
@@ -105,6 +106,7 @@ class Camera:
             except StopIteration:
                 print("ERROR at collecting frame")
                 break
+
         return Gst.PadProbeReturn.OK
 
 
@@ -195,13 +197,14 @@ class Camera:
 
         #caps_v4l2src.set_property('caps', Gst.Caps.from_string("video/x-raw, framerate=21/1, format=NV12"))
         caps_input.set_property('caps', Gst.Caps.from_string("video/x-raw(memory:NVMM), width=1920, height=1080, framerate=30/1, format=NV12"))
+#        caps_input.set_property('caps', Gst.Caps.from_string("video/x-raw(memory:NVMM), width=1280, height=720, framerate=60/1, format=NV12"))
         caps_convertres.set_property('caps', Gst.Caps.from_string("video/x-raw(memory:NVMM), width=960, height=544"))
         source.set_property('bufapi-version', 1)
         streammux.set_property('width', 960)
         streammux.set_property('height', 544)
         streammux.set_property('batch-size', 1)
         streammux.set_property('batched-push-timeout', 4000000)
-        pgie.set_property('config-file-path', "/home/ghip-nano/face_mask_detection/mask_detector_config.txt")
+        pgie.set_property('config-file-path', parameters.CONFIG_FILE_PATH)
         if (show_stream):
             # Set sync = false to avoid late frame drops at the display-sink
             sink.set_property('sync', False)

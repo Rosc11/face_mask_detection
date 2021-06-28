@@ -5,8 +5,9 @@ import time
 from PIL import Image
 import requests
 import cv2
+import parameters
 
-ENDPOINT = 'http://localhost:8095/api/current_frame'
+ENDPOINT = parameters.ENDPOINT
 
 def send(timestamp, image, detections):
     #base64 image string from image
