@@ -1,6 +1,6 @@
 # only tune parameters in this file
 
-SEND_INTERVAL = 500 #in milliseconds
+SEND_INTERVAL = 0 #in milliseconds
 
 CONFIG_FILE_PATH = "/home/ghip-xavier/face_mask_detection/mask_detector_config.txt"
 

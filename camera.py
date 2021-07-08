@@ -12,6 +12,7 @@ import pyds
 import time
 import asyncio
 import parameters
+import threading
 
 class Camera:
     def __init__(self):
@@ -65,7 +66,7 @@ class Camera:
                     obj_meta=pyds.NvDsObjectMeta.cast(l_obj.data)
                 except StopIteration:
                     break
-                obj_meta.rect_params.border_color.set(0.0, 0.0, 1.0, 0.0)
+                #obj_meta.rect_params.border_color.set(0.0, 0.0, 1.0, 0.0)
 
                 #add detected rect
                 score = obj_meta.confidence
@@ -81,7 +82,6 @@ class Camera:
                     l_obj=l_obj.next
                 except StopIteration:
                     break
-
             #apply nms
             detected_rects = apply_nms(detected_rects)
 #            print("Frame " + str(frame_number)  + ", " + str(len(detected_rects))+" object(s) detected!")
@@ -94,11 +94,13 @@ class Camera:
                     self.last_time_sent = now
                     frame_image = get_cv2_image(gst_buffer, frame_meta)
 #                    frame_image = resize_image_post_request(frame_image, 640, 480)
-                    #send(now, frame_image, detected_rects)
-#                    print("now sending frame " + str(frame_number) + " with timestamp " + str(now))
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(send_async(now, frame_image, detected_rects))
+#                    send(now, frame_image, detected_rects)
+                    print("now sending frame " + str(frame_number) + " with timestamp " + str(now))
+                    th = threading.Thread(target= send, args=(now, frame_image, detected_rects))
+                    th.start()
+#                    loop = asyncio.new_event_loop()
+#                    asyncio.set_event_loop(loop)
+#                    loop.run_until_complete(send_async(now, frame_image, detected_rects))
                 #print("score = " + str(detected_rects[0][1]))
                 #save_face_crops(detected_rects, frame_image)
             try:
@@ -178,16 +180,24 @@ class Camera:
         nvvidconv = Gst.ElementFactory.make("nvvideoconvert", "convertor")
         if not nvvidconv:
             sys.stderr.write(" Unable to create nvvidconv \n")
-        # Create OSD to draw on the converted RGBA buffer
-        # This is where the probe is placed to draw on images
-        nvosd = Gst.ElementFactory.make("nvdsosd", "onscreendisplay")
-        if not nvosd:
-            sys.stderr.write(" Unable to create nvosd \n")
+
+        # Use a filter to convert to RGBA, since we're not using nvosd anymore
+        caps_rgba = Gst.Caps.from_string("video/x-raw(memory:NVMM), format=RGBA")
+        filter_rgba = Gst.ElementFactory.make("capsfilter", "filter1")
+        if not filter_rgba:
+            sys.stderr.write(" Unable to create filter_rgba \n")
+        filter_rgba.set_property("caps", caps_rgba)
+
         if (show_stream):
+            # Create OSD to draw on the converted RGBA buffer
+            nvosd = Gst.ElementFactory.make("nvdsosd", "onscreendisplay")
+            if not nvosd:
+                sys.stderr.write(" Unable to create nvosd \n")
+
             # Finally render the osd output
             if is_aarch64():
                 transform = Gst.ElementFactory.make("nvegltransform", "nvegl-transform")
-#        if (show_stream):
+
             print("Creating EGLSink \n")
             sink = Gst.ElementFactory.make("nveglglessink", "nvvideo-renderer")
             if not sink:
@@ -218,7 +228,9 @@ class Camera:
         self.pipeline.add(streammux)
         self.pipeline.add(pgie)
         self.pipeline.add(nvvidconv)
-        self.pipeline.add(nvosd)
+        self.pipeline.add(filter_rgba)
+        if show_stream:
+            self.pipeline.add(nvosd)
         self.pipeline.add(sink)
         if is_aarch64() and show_stream:
             self.pipeline.add(transform)
@@ -241,12 +253,13 @@ class Camera:
         srcpad.link(sinkpad)
         streammux.link(pgie)
         pgie.link(nvvidconv)
-        nvvidconv.link(nvosd)
+        nvvidconv.link(filter_rgba)
         if is_aarch64() and show_stream:
+            filter_rgba.link(nvosd)
             nvosd.link(transform)
             transform.link(sink)
         else:
-            nvosd.link(sink)
+            filter_rgba.link(sink)
 
         # create an event loop and feed gstreamer bus mesages to it
         self.loop = GObject.MainLoop()
@@ -257,7 +270,7 @@ class Camera:
         # Lets add probe to get informed of the meta data generated, we add probe to
         # the sink pad of the osd element, since by that time, the buffer would have
         # had got all the metadata.
-        osdsinkpad = nvosd.get_static_pad("sink")
+        osdsinkpad = sink.get_static_pad("sink")
         if not osdsinkpad:
             sys.stderr.write(" Unable to get sink pad of nvosd \n")
 

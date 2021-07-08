@@ -48,6 +48,7 @@ def send(timestamp, image, detections):
 #    filename = str(timestamp) + '.txt'
 #    with open(filename, 'w') as jsonfile:
 #        json.dump(jsonobject, jsonfile)
-    
+
     #post request
     x = requests.post(ENDPOINT, json=jsonobject)
+    print("sent frame with timestamp " + str(timestamp))

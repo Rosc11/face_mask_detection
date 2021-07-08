@@ -11,6 +11,7 @@ import parameters
 ENDPOINT = parameters.ENDPOINT
 
 async def send_async(timestamp, image, detections):
+    print("executing timestamp " + str(timestamp))
     async with aiohttp.ClientSession() as session:
         #base64 image string from image
         retval, buffer = cv2.imencode('.jpg', image)
