@@ -37,11 +37,10 @@ def main(args):
     elif len(args) > 2:
         sys.stderr.write("usage: " + args[0] + " \n no-stream [optional]")
         sys.exit(1)
-    
+
     # We need to create a pipeline to get the images from the raspberry pi v2 camera
-    cam = Camera()
-    cam.create_pipeline(show_stream)
-    
+    cam = Camera(show_stream)
+
     # start play back and listen to events
     cam.start_camera()
 

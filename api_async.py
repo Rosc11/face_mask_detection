@@ -11,7 +11,6 @@ import parameters
 ENDPOINT = parameters.ENDPOINT
 
 async def send_async(timestamp, image, detections):
-    print("executing timestamp " + str(timestamp))
     async with aiohttp.ClientSession() as session:
         #base64 image string from image
         retval, buffer = cv2.imencode('.jpg', image)
@@ -47,16 +46,16 @@ async def send_async(timestamp, image, detections):
             #"image": 'image-data',
             "faces": faces
         }
+
 #    app_json = json.dumps(jsonobject)
 #    filename = str(timestamp) + '.txt'
 #    with open(filename, 'w') as jsonfile:
 #        json.dump(jsonobject, jsonfile)
-    
     #post request
     #x = requests.post(ENDPOINT, json=jsonobject)
+
         async with session.post(ENDPOINT,
             headers={'Content-Type':'application/json'},
             json=jsonobject) as resp: # [1]
                 response = await resp.json() # [2]
-#                print(response)
                 print("sent frame with timestamp " + str(timestamp))

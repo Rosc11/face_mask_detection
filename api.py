@@ -51,4 +51,4 @@ def send(timestamp, image, detections):
 
     #post request
     x = requests.post(ENDPOINT, json=jsonobject)
-    print("sent frame with timestamp " + str(timestamp))
+#    print("sent frame with timestamp " + str(timestamp))

@@ -8,20 +8,32 @@ from common.bus_call import bus_call
 from utils import save_face_crops, get_cv2_image, apply_nms, resize_image_post_request
 from api import send
 from api_async import send_async
+from concurrent.futures import ProcessPoolExecutor
 import pyds
 import time
 import asyncio
 import parameters
 import threading
+import queue
+import cv2
+from PIL import Image
+import aiohttp
+import json
+import base64
+
+
+ENDPOINT = parameters.ENDPOINT
 
 class Camera:
-    def __init__(self):
+    def __init__(self, show_stream):
         self.pipeline = None
         self.loop = None
         self.notsend = False
         self.last_time_sent = 0
         self.send_interval = parameters.SEND_INTERVAL
         self.started = False
+        self.queue = queue.Queue()
+        self.show_stream = show_stream
 
     def osd_sink_pad_buffer_probe(self, pad,info,u_data):
         if (not self.started):
@@ -94,10 +106,13 @@ class Camera:
                     self.last_time_sent = now
                     frame_image = get_cv2_image(gst_buffer, frame_meta)
 #                    frame_image = resize_image_post_request(frame_image, 640, 480)
-#                    send(now, frame_image, detected_rects)
                     print("now sending frame " + str(frame_number) + " with timestamp " + str(now))
-                    th = threading.Thread(target= send, args=(now, frame_image, detected_rects))
-                    th.start()
+                    before = round(time.time() * 1000)
+                    send(now, frame_image, detected_rects)
+                    now = round(time.time() * 1000)
+                    diff = now - before
+                    print("API call took " + str(diff) + " milliseconds")
+#                    self.queue.put((now, frame_image, detected_rects))
 #                    loop = asyncio.new_event_loop()
 #                    asyncio.set_event_loop(loop)
 #                    loop.run_until_complete(send_async(now, frame_image, detected_rects))
@@ -112,7 +127,7 @@ class Camera:
         return Gst.PadProbeReturn.OK
 
 
-    def create_pipeline(self, show_stream):
+    def create_pipeline(self):
         # Convert command to code:
         # command = gst-launch-1.0 nvarguscamerasrc ! 'video/x-raw(memory:NVMM),width=1920, height=1080, framerate=30/1, format=NV12' ! nvvidconv flip-method=2 ! 'video/x-raw,width=960, height=616' ! nvvidconv ! ximagesink -e
         # VERY IMPORTANT: since deepstream is used, we need to use nv methods instead of regular methods
@@ -188,7 +203,7 @@ class Camera:
             sys.stderr.write(" Unable to create filter_rgba \n")
         filter_rgba.set_property("caps", caps_rgba)
 
-        if (show_stream):
+        if (self.show_stream):
             # Create OSD to draw on the converted RGBA buffer
             nvosd = Gst.ElementFactory.make("nvdsosd", "onscreendisplay")
             if not nvosd:
@@ -215,7 +230,7 @@ class Camera:
         streammux.set_property('batch-size', 1)
         streammux.set_property('batched-push-timeout', 4000000)
         pgie.set_property('config-file-path', parameters.CONFIG_FILE_PATH)
-        if (show_stream):
+        if (self.show_stream):
             # Set sync = false to avoid late frame drops at the display-sink
             sink.set_property('sync', False)
 
@@ -229,10 +244,10 @@ class Camera:
         self.pipeline.add(pgie)
         self.pipeline.add(nvvidconv)
         self.pipeline.add(filter_rgba)
-        if show_stream:
+        if self.show_stream:
             self.pipeline.add(nvosd)
         self.pipeline.add(sink)
-        if is_aarch64() and show_stream:
+        if is_aarch64() and self.show_stream:
             self.pipeline.add(transform)
 
         # we link the elements together
@@ -254,7 +269,7 @@ class Camera:
         streammux.link(pgie)
         pgie.link(nvvidconv)
         nvvidconv.link(filter_rgba)
-        if is_aarch64() and show_stream:
+        if is_aarch64() and self.show_stream:
             filter_rgba.link(nvosd)
             nvosd.link(transform)
             transform.link(sink)
@@ -276,8 +291,47 @@ class Camera:
 
         osdsinkpad.add_probe(Gst.PadProbeType.BUFFER, self.osd_sink_pad_buffer_probe, 0)
 
+    def process_buffer(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        while(True):
+           if not self.queue.empty():
+                item = self.queue.get()
+                if item is None:
+                   break
+                now, image, detected_rects = item
+                print("Current size of queue is " + str(self.queue.qsize()))
+                before = round(time.time() * 1000)
+#                send(now, image, detected_rects)
+#                loop = asyncio.get_event_loop()
+                loop.run_until_complete(send_async(now, image, detected_rects))
+                now = round(time.time() * 1000)
+                diff = now - before
+                print("API call took " + str(diff) + " milliseconds")
+           else:
+                time.sleep(0.01)
+
+
+
+    def start_workers(self, worker_pool=6):
+        threads=[]
+        for i in range(worker_pool):
+             th = threading.Thread(target = self.process_buffer)
+             th.start()
+             threads.append(th)
+        return threads
+
+    def stop_workers(self, threads):
+        for i in threads:
+             self.queue.put(None)
+        for t in threads:
+             t.join()
 
     def start_camera(self):
+        print("Starting frame queue \n")
+#        workers = self.start_workers(worker_pool=8)
+        self.create_pipeline()
+        workers = self.start_workers()
         print("Starting pipeline \n")
         self.pipeline.set_state(Gst.State.PLAYING)
         try:
@@ -288,3 +342,5 @@ class Camera:
         # cleanup
         print("Exiting app")
         self.pipeline.set_state(Gst.State.NULL)
+        self.queue.put(None)
+        self.stop_workers(workers)
